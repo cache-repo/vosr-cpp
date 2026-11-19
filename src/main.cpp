@@ -1,10 +1,8 @@
 #include "vosr.hpp"
 
 #include <cstring>
-#include <fstream>
 #include <iostream>
 #include <string>
-#include <vector>
 
 namespace {
 
@@ -12,7 +10,7 @@ void usage(const char* prog) {
     std::cout << "用法: " << prog << " -i <输入图片> -o <输出图片> [选项]\n"
               << "选项:\n"
               << "  --model NAME      模型：vosr-0.5b-os|vosr2（默认 vosr-0.5b-os）\n"
-              << "  --model-dir DIR   MNN 模型目录（默认按 --model 选择）\n"
+              << "  --model-dir DIR   MNN 模型目录（默认 ./mnn-vosr_0.5B_os_fp16）\n"
               << "  -u N              放大倍数（默认 4）\n"
               << "  --steps N         采样步数（默认 1）\n"
               << "  --seed N          随机种子（默认 42）\n"
@@ -60,24 +58,17 @@ int main(int argc, char** argv) {
             usage(argv[0]);
             return 1;
         }
-        // 按 --model 选择默认目录与 latent 通道数；显式 --model-dir 优先。
+        // 默认模型目录固定为 ./mnn-vosr_0.5B_os_fp16；其他路径用 --model-dir 显式指定。
+        if (opt.model_dir.empty()) opt.model_dir = "./mnn-vosr_0.5B_os_fp16";
+        // 按 --model 设置 latent 通道数 / DiT 输入结构。
         if (opt.model == "vosr2") {
             opt.latent_channels = 16;
             opt.dit_has_r = false;
-            if (opt.model_dir.empty()) opt.model_dir = "vosr-python-mnn/models/mnn-vosr2";
         } else if (opt.model == "vosr-0.5b-os") {
             opt.latent_channels = 4;
             opt.dit_has_r = true;
-            if (opt.model_dir.empty()) opt.model_dir = "vosr-python-mnn/models/mnn";
         } else {
             throw std::runtime_error("未知 --model: " + opt.model);
-        }
-        // 默认模型目录是相对仓库根的路径；允许在 vosr-mnn-cpp 子目录运行。
-        // 显式 --model-dir 不做路径改写。
-        if (opt.model_dir == "vosr-python-mnn/models/mnn" ||
-            opt.model_dir == "vosr-python-mnn/models/mnn-vosr2") {
-            std::ifstream probe(opt.model_dir + "/vae_encoder.mnn", std::ios::binary);
-            if (!probe) opt.model_dir = "../" + opt.model_dir;
         }
         vosr::Image img;
         if (!vosr::load_image(input, img))

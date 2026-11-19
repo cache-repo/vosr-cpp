@@ -1,7 +1,34 @@
-# VOSR MNN C++ 推理
+# VOSR C++
 
-基于 `vosr-python-mnn` 的 MNN Python 推理实现，用 C++ 重写同一条推理链路。
-模型文件复用 `vosr-python-mnn/` 下已转换好的 `.mnn`，支持 `vosr-0.5b-os` 和 `vosr2` 两套，无需重新导出。
+纯 C++ 实现的 [VOSR](https://github.com/cswry/VOSR) 图像超分推理，
+基于 [MNN](https://github.com/alibaba/MNN) 运行时，可在无 GPU 的 CPU 环境直接运行。
+
+## 关于 VOSR
+
+[VOSR](https://github.com/cswry/VOSR)（CVPR 2026，*"VOSR: Visual-Guided One-Step Super-Resolution"*）
+是一种视觉条件引导的单步扩散超分方法，以 DINOv2 全局特征为条件、用轻量级 DiT
+一次性生成高分辨率细节，效果优秀，相比多步扩散显著加速。
+
+- VOSR 上游仓库：https://github.com/cswry/VOSR
+- VOSR 论文：https://arxiv.org/pdf/2604.03225
+- MNN 推理框架：https://github.com/alibaba/MNN
+- 本仓库（含 Python 版、模型转换脚本）：https://cnb.cool/ai-zoomer/vosr
+
+
+## 特点与性能说明
+
+- **体积小、无环境要求**：移植后的程序为单个可执行文件（Windows 版另带一个 MinGW 线程 DLL），
+  不依赖 Python / PyTorch / CUDA，连同模型**解压即可使用**。
+- **推理后端**：支持 **CPU 推理**（默认）和 **OpenCL 加速**（`--backend opencl`）；
+  OpenCL 不可用时自动回退 CPU。
+- **性能局限**：经测试，本程序的推理速度比知名超分项目 **Real-ESRGAN 的第三方模型还慢一个数量级**
+  （同等输入与硬件下），**不具备大力推广的必要性**。
+
+参考数据：`benchmark.png`（342×449 → 1368×1796，4 线程参数、tile 512、fp16 模型）
+CPU 推理约 90 秒；使用笔记本 RTX5060 GPU 推理约 36 秒，显存占用接近 8G。
+
+
+> 本仓库是其他项目的一部分，**仅供演示** VOSR 的推理移植，不建议作为通用超分方案部署和日用。
 
 ## 与 Python 版本的关系
 
@@ -29,7 +56,7 @@ vosr2 的 `dit.mnn` 超过 2 GB，MNN 拆出的 `dit.mnn.weight` 必须与 `.mnn
 
 ## 构建
 
-前置条件：CMake 3.16+、C++14 编译器、MNN 源码（仓库根的 `MNN` submodule）。
+前置条件：CMake 3.16+、C++14 编译器、MNN 源码（本目录 `MNN/` 或父目录 `MNN/` submodule）。
 
 ```bash
 # 方式 1：使用仓库内 submodule 自动构建 MNN（推荐）
@@ -72,7 +99,7 @@ vosr-mnn-cpp/build/vosr-mnn-cpp \
 | `-i, --input` | 必填 | 输入 PNG / JPG / BMP / TIFF 图片 |
 | `-o, --output` | 必填 | 输出 PNG 路径 |
 | `--model` | `vosr-0.5b-os` | 模型：`vosr-0.5b-os` / `vosr2` |
-| `--model-dir` | 按 `--model` 选择 | MNN 模型目录（显式指定时覆盖默认值） |
+| `--model-dir` | `./mnn-vosr_0.5B_os_fp16` | MNN 模型目录（其他路径显式指定） |
 | `-u, --upscale` | 4 | 放大倍数 |
 | `--steps` | 1 | 采样步数 |
 | `--seed` | 42 | 随机种子 |

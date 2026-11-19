@@ -7,8 +7,17 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# MNN 源码：独立仓库优先用本目录内的 MNN/（作为 submodule 发布），
+# 仍兼容当前 monorepo 的父目录 ../MNN 布局。
 get_filename_component(REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
-set(MNN_SOURCE_DIR "${REPO_ROOT}/MNN" CACHE PATH "MNN 源码目录")
+set(MNN_SOURCE_DIR "" CACHE PATH "MNN 源码目录（默认自动探测：本目录 MNN/ 或父目录 MNN/）")
+if(NOT MNN_SOURCE_DIR)
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/MNN/CMakeLists.txt")
+    set(MNN_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/MNN")
+  else()
+    set(MNN_SOURCE_DIR "${REPO_ROOT}/MNN")
+  endif()
+endif()
 
 # MNN 头文件与库：优先从 submodule 就地构建；可用 MNN_INCLUDE_DIR / MNN_LIBRARY 覆盖。
 set(MNN_INCLUDE_DIR "" CACHE PATH "MNN include 目录")
@@ -97,7 +106,7 @@ elseif(EXISTS "${MNN_SOURCE_DIR}/CMakeLists.txt")
     set(MNN_TRAIN_LIB "${_train_lib}")
   endif()
 else()
-  message(FATAL_ERROR "未找到 MNN：设置 MNN_INCLUDE_DIR/MNN_LIBRARY，或初始化仓库根 MNN submodule")
+  message(FATAL_ERROR "未找到 MNN：把 MNN 放到本目录（git submodule add https://github.com/alibaba/MNN.git MNN），或设置 MNN_SOURCE_DIR / MNN_INCLUDE_DIR+MNN_LIBRARY")
 endif()
 
 add_executable(vosr-mnn-cpp src/main.cpp src/vosr.cpp)
