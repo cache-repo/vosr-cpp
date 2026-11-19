@@ -1,0 +1,6 @@
+build/
+build-wine/
+third_party/mnn-build/
+output/
+*.png
+!assets/*.png
